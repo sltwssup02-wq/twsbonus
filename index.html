@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Project Cloud Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        form select, .filter-container select, .summary-controls select, .summary-controls input {
+            padding: 12px 18px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            background-color: white;
+            color: #333;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        form select:focus, .filter-container select:focus, .summary-controls select:focus, .summary-controls input:focus {
+            border-color: #1abc9c;
+            box-shadow: 0 0 0 3px rgba(26, 188, 156, 0.15);
+        }
+        .filter-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            background: #f8fafc;
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            display: inline-flex;
+        }
+        .filter-container label {
+            font-weight: 500;
+            font-size: 14px;
+            color: #475569;
+        }
+        .month-badge {
+            background-color: #f1f5f9;
+            color: #475569;
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge.strike-red {
+            background-color: rgba(231, 76, 60, 0.15);
+            color: #e74c3c;
+            text-decoration: line-through;
+            font-weight: 600;
+        }
+        .summary-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #e2e8f0;
+            align-items: center;
+        }
+        .summary-controls .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .summary-controls label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+        .summary-btn {
+            padding: 12px 24px;
+            background-color: #1f497d;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 20px;
+        }
+        .summary-btn:hover {
+            background-color: #16355c;
+        }
+        .total-row td {
+            background-color: #f8fafc !important;
+            font-weight: bold;
+            color: #1f497d;
+            border-top: 2px solid #cbd5e1;
+            border-bottom: 2px solid #cbd5e1;
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
+        }
+        .table-wrapper {
+            max-height: 650px; 
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        #mainTable {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        #mainTable th {
+            position: sticky;
+            top: 0;
+            background-color: #1f497d; 
+            color: white;
+            z-index: 20;
+            box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .submenu-container {
+            display: none; 
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            background-color: rgba(0, 0, 0, 0.15);
+        }
+        .submenu-container.open {
+            display: block; 
+        }
+        .project-list li.has-dropdown {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .dropdown-arrow {
+            font-size: 11px;
+            transition: transform 0.2s;
+        }
+        .project-list li.has-dropdown.active-header .dropdown-arrow {
+            transform: rotate(180deg); 
+        }
+        .sub-menu-item {
+            padding-left: 35px !important;
+            font-size: 13px !important;
+            opacity: 0.85;
+            border-left: 3px solid transparent;
+            cursor: pointer;
+        }
+        .sub-menu-item:hover {
+            opacity: 1;
+            background-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .sub-menu-item.active {
+            border-left: 3px solid #e67e22 !important;
+            background-color: rgba(255, 255, 255, 0.12) !important;
+        }
+
+        /* --- 📌 🚀 Vertical UI Form Style For IR Update --- */
+        .vertical-ir-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 500px; /* Aligns into a neat column */
+            margin-top: 15px;
+        }
+        .vertical-ir-form .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .vertical-ir-form label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #34495e;
+            text-transform: uppercase;
+        }
+        .vertical-ir-form input, .vertical-ir-form select {
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .submit-container {
+            display: flex;
+            justify-content: flex-start;
+            margin-top: 10px;
+        }
+        .ir-submit-btn {
+            background-color: #2ecc71; /* Green submit button as mockup */
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .ir-submit-btn:hover {
+            background-color: #27ae60;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+    <div class="login-box">
+        <h2>Cloud Dashboard Login</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="handleLogin()">Login</button>
+        <div class="error-msg" id="errorMsg">Invalid Username or Password!</div>
+    </div>
+</div>
+
+<div class="top-navbar">
+    <button class="menu-toggle-btn" id="menuToggle">☰</button>
+    <h1 id="currentProjectTitle">ALL PROJECTS - DASHBOARD</h1>
+    <span class="user-status" id="userStatus">Role: Guest</span>
+    <button class="logout-btn" onclick="handleLogout()">Logout</button>
+</div>
+
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <h3>MAIN MENU</h3>
+    </div>
+    <ul class="project-list">
+        <li class="has-dropdown active-header" id="allProjectsHeader" onclick="toggleDropdown('projectsSubmenu', 'allProjectsHeader', 'All Projects')">
+            <span>📁 All Projects</span>
+            <span class="dropdown-arrow">▼</span>
+        </li>
+        <div class="submenu-container open" id="projectsSubmenu">
+            <li class="sub-menu-item" onclick="switchProject('W PROJECT')">📄 W PROJECT</li>
+            <li class="sub-menu-item" onclick="switchProject('ATAS')">📄 ATAS</li>
+            <li class="sub-menu-item" onclick="switchProject('HOB')">📄 HOB</li>
+            <li class="sub-menu-item" onclick="switchProject('KK8 - W')">📄 KK8 - W</li>
+            <li class="sub-menu-item" onclick="switchProject('KK8 - D')">📄 KK8 - D</li>
+            <li class="sub-menu-item" onclick="switchProject('CG')">📄 CG</li>
+            <li class="sub-menu-item" onclick="switchProject('CTN')">📄 CTN</li>
+            <li class="sub-menu-item" onclick="switchProject('XE8')">📄 XE8</li>
+            <li class="sub-menu-item" onclick="switchProject('B4B')">📄 B4B</li>
+            <li class="sub-menu-item" onclick="switchProject('W1W')">📄 W1W</li>
+        </div>
+        
+        <li style="margin-top: 5px;" onclick="switchProject('Employer Summary')">📋 Employer Summary</li>
+        
+        <li class="has-dropdown" id="shortageHeader" onclick="toggleDropdown('shortageSubmenu', 'shortageHeader', 'Shortage Summary')" style="margin-top: 5px; color: #f1c40f;">
+            <span>⚠️ Shortage Summary</span>
+            <span class="dropdown-arrow">▼</span>
+        </li>
+        <div class="submenu-container" id="shortageSubmenu">
+            <li class="sub-menu-item" onclick="switchProject('Shortage Summary')">🔹 All Shortages</li>
+            <li class="sub-menu-item" onclick="switchProject('Shortage: W PROJECT')">🔸 W PROJECT Shortage</li>
+            <li class="sub-menu-item" onclick="switchProject('Shortage: ATAS')">🔸 ATAS Shortage</li>
+            <li class="sub-menu-item" onclick="switchProject('Shortage: HOB')">🔸 HOB Shortage</li>
+            <li class="sub-menu-item" onclick="switchProject('Shortage: KK8 - W')">🔸 KK8 - W Shortage</li>
+            <li class="sub-menu-item" onclick="switchProject('Shortage: KK8 - D')">🔸 KK8 - D Shortage</li>
+            <li class="sub-menu-item" onclick="switchProject('Shortage: CG')">🔸 CG Shortage</li>
+            <li class="sub-menu-item" onclick="switchProject('Shortage: CTN')">🔸 CTN Shortage</li>
+            <li class="sub-menu-item" onclick="switchProject('Shortage: XE8')">🔸 XE8 Shortage</li>
+            <li class="sub-menu-item" onclick="switchProject('B4B')">🔸 B4B Shortage</li>
+            <li class="sub-menu-item" onclick="switchProject('W1W')">🔸 W1W Shortage</li>
+        </div>
+
+        <li class="has-dropdown" id="irHeader" onclick="toggleDropdown('irSubmenu', 'irHeader', 'All IRs')" style="margin-top: 5px; color: #1abc9c;">
+            <span>🚀 IR Update</span>
+            <span class="dropdown-arrow">▼</span>
+        </li>
+        <div class="submenu-container" id="irSubmenu">
+            <li class="sub-menu-item" onclick="switchProject('All IRs')">🔹 All IRs (Data Insert)</li>
+            <li class="sub-menu-item" onclick="switchProject('IR: W PROJECT')">🔸 W PROJECT IR</li>
+            <li class="sub-menu-item" onclick="switchProject('IR: ATAS')">🔸 ATAS IR</li>
+            <li class="sub-menu-item" onclick="switchProject('IR: HOB')">🔸 HOB IR</li>
+            <li class="sub-menu-item" onclick="switchProject('IR: KK8 - W')">🔸 KK8 - W IR</li>
+            <li class="sub-menu-item" onclick="switchProject('IR: KK8 - D')">🔸 KK8 - D IR</li>
+            <li class="sub-menu-item" onclick="switchProject('IR: CG')">🔸 CG IR</li>
+            <li class="sub-menu-item" onclick="switchProject('IR: CTN')">🔸 CTN IR</li>
+            <li class="sub-menu-item" onclick="switchProject('IR: XE8')">🔸 XE8 IR</li>
+            <li class="sub-menu-item" onclick="switchProject('IR: B4B')">🔸 B4B IR</li>
+            <li class="sub-menu-item" onclick="switchProject('IR: W1W')">🔸 W1W IR</li>
+        </div>
+    </ul>
+</div>
+
+<div class="main-content" id="mainContent">
+    
+    <div class="form-section" id="formSection" style="display: none;">
+        <h3>Add Data for <span id="formProjectTitle">Project</span></h3>
+        <form id="dataForm">
+            <select id="dataMonth">
+                <option value="January">January</option><option value="February">February</option>
+                <option value="March">March</option><option value="April">April</option>
+                <option value="May" selected>May</option><option value="June">June</option>
+                <option value="July">July</option><option value="August">August</option>
+                <option value="September">September</option><option value="October">October</option>
+                <option value="November">November</option><option value="December">December</option>
+            </select>
+            <input type="text" id="empName" placeholder="Employee Name">
+            <input type="number" id="empNo" placeholder="EMP NO">
+            <input type="number" id="bonusCount" placeholder="Bonus Count">
+            <input type="number" step="0.01" id="shortAmount" placeholder="Short Amount (MYR)">
+            <input type="number" id="achievedAmount" placeholder="Achieved Amount ($)">
+            <button type="submit">Save Data</button>
+        </form>
+    </div>
+
+    <div class="form-section" id="irFormSection" style="display: none; background: #fdfefe; border-left: 5px solid #1abc9c; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <h3 style="color:#1abc9c; margin-bottom:20px;">🚀 Insert IR Details (Vertical Layout)</h3>
+        <form id="irDataForm" class="vertical-ir-form">
+            
+            <div class="form-group">
+                <label>Month</label>
+                <select id="irMonth">
+                    <option value="January">January</option><option value="February">February</option>
+                    <option value="March">March</option><option value="April">April</option>
+                    <option value="May" selected>May</option><option value="June">June</option>
+                    <option value="July">July</option><option value="August">August</option>
+                    <option value="September">September</option><option value="October">October</option>
+                    <option value="November">November</option><option value="December">December</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>EMP No</label>
+                <input type="number" id="irEmpNo" placeholder="Enter Employee Number" required>
+            </div>
+
+            <div class="form-group">
+                <label>EMP Name</label>
+                <input type="text" id="irEmpName" placeholder="Enter Employee Name" required>
+            </div>
+
+            <div class="form-group">
+                <label>Project</label>
+                <select id="irProjectSelect" required>
+                    <option value="" disabled selected>Select Project</option>
+                    <option value="W PROJECT">W PROJECT</option>
+                    <option value="ATAS">ATAS</option>
+                    <option value="HOB">HOB</option>
+                    <option value="KK8 - W">KK8 - W</option>
+                    <option value="KK8 - D">KK8 - D</option>
+                    <option value="CG">CG</option>
+                    <option value="CTN">CTN</option>
+                    <option value="XE8">XE8</option>
+                    <option value="B4B">B4B</option>
+                    <option value="W1W">W1W</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Description / Reason</label>
+                <input type="text" id="irIssue" placeholder="Enter IR Issue or Description" required>
+            </div>
+
+            <div class="form-group">
+                <label>Amount (MYR)</label>
+                <input type="number" step="0.01" id="irAmount" placeholder="Enter Amount (Optional)">
+            </div>
+
+            <div class="form-group">
+                <label>Status</label>
+                <input type="text" id="irStatus" placeholder="Pending / Resolved" value="Pending">
+            </div>
+
+            <div class="submit-container">
+                <button type="submit" class="ir-submit-btn">Submit</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-section" id="summaryControlsSection" style="display: none;">
+        <h3 id="filterSectionTitle">Filter Summary Report</h3>
+        <div class="summary-controls">
+            <div class="control-group">
+                <label>Start Month</label>
+                <select id="startMonth">
+                    <option value="January">January</option><option value="February">February</option>
+                    <option value="March">March</option><option value="April">April</option>
+                    <option value="May" selected>May</option><option value="June">June</option>
+                    <option value="July">July</option><option value="August">August</option>
+                    <option value="September">September</option><option value="October">October</option>
+                    <option value="November">November</option><option value="December">December</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>End Month</label>
+                <select id="endMonth">
+                    <option value="January">January</option><option value="February">February</option>
+                    <option value="March">March</option><option value="April">April</option>
+                    <option value="May">May</option><option value="June" selected>June</option>
+                    <option value="July">July</option><option value="August">August</option>
+                    <option value="September">September</option><option value="October">October</option>
+                    <option value="November">November</option><option value="December">December</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Search Employee (Name / No)</label>
+                <input type="text" id="searchQuery" placeholder="Type name or emp no...">
+            </div>
+            <button class="summary-btn" id="generateReportBtn" onclick="triggerSummaryGeneration()">Generate Report</button>
+        </div>
+    </div>
+
+    <div class="table-section" id="tableSection">
+        <div class="filter-container" id="standardFilterContainer">
+            <label for="monthFilter">Filter by Month:</label>
+            <select id="monthFilter" onchange="filterByMonth()">
+                <option value="All Months">All Months</option>
+                <option value="January">January</option><option value="February">February</option>
+                <option value="March">March</option><option value="April">April</option>
+                <option value="May">May</option><option value="June">June</option>
+                <option value="July">July</option><option value="August">August</option>
+                <option value="September">September</option><option value="October">October</option>
+                <option value="November">November</option><option value="December">December</option>
+            </select>
+        </div>
+
+        <div class="table-wrapper">
+            <table id="mainTable">
+                <thead id="tableHeader"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAN1TGGzWkNFO5QqdfFppBXsnlrzdjzuQA",
+        authDomain: "bonus-result.firebaseapp.com",
+        databaseURL: "https://bonus-result-default-rtdb.firebaseio.com/",
+        projectId: "bonus-result",
+        storageBucket: "bonus-result.firebasestorage.app",
+        messagingSenderId: "1090545530627",
+        appId: "1:1090545530627:web:ad812f7be0a3b4e1bc1b36",
+        measurementId: "G-P0Y3BT9F8Z"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const monthOrder = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    let currentProject = "All Projects";
+    let selectedMonthFilter = "All Months";
+    let currentUserRole = localStorage.getItem('userRole') || null;
+    let databaseItems = [];
+    let irDatabaseItems = []; 
+
+    const loginScreen = document.getElementById('loginScreen');
+    const userStatus = document.getElementById('userStatus');
+    const errorMsg = document.getElementById('errorMsg');
+    const formSection = document.getElementById('formSection');
+    const irFormSection = document.getElementById('irFormSection');
+    const formProjectTitle = document.getElementById('formProjectTitle');
+    const tableBody = document.getElementById('tableBody');
+    const tableHeader = document.getElementById('tableHeader');
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const monthFilterDropdown = document.getElementById('monthFilter');
+    const standardFilterContainer = document.getElementById('standardFilterContainer');
+    const summaryControlsSection = document.getElementById('summaryControlsSection');
+    const filterSectionTitle = document.getElementById('filterSectionTitle');
+
+    function checkAuth() {
+        if (currentUserRole) {
+            loginScreen.style.display = 'none';
+            userStatus.innerText = `Role: ${currentUserRole.toUpperCase()}`;
+            switchProject(currentProject);
+        } else {
+            loginScreen.style.display = 'flex';
+        }
+    }
+
+    window.handleLogin = function() {
+        const u = document.getElementById('username').value;
+        const p = document.getElementById('password').value;
+        if (u === 'admin' && p === '123') currentUserRole = 'admin';
+        else if (u === 'user' && p === '123') currentUserRole = 'user';
+        else { errorMsg.style.display = 'block'; return; }
+        localStorage.setItem('userRole', currentUserRole);
+        errorMsg.style.display = 'none';
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+        checkAuth();
+    }
+
+    window.handleLogout = function() {
+        localStorage.removeItem('userRole');
+        currentUserRole = null;
+        checkAuth();
+    }
+
+    document.getElementById('menuToggle').addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+        mainContent.classList.toggle('sidebar-active');
+    });
+
+    window.toggleDropdown = function(submenuId, headerId, defaultProj) {
+        const submenu = document.getElementById(submenuId);
+        const header = document.getElementById(headerId);
+        const isOpen = submenu.classList.contains('open');
+        
+        if(isOpen) {
+            submenu.classList.remove('open');
+            header.classList.remove('active-header');
+        } else {
+            submenu.classList.add('open');
+            header.classList.add('active-header');
+            switchProject(defaultProj); 
+        }
+    }
+
+    window.switchProject = function(projectName) {
+        currentProject = projectName;
+        irFormSection.style.display = "none"; 
+        formSection.style.display = "none";
+        summaryControlsSection.style.display = "none";
+        standardFilterContainer.style.display = "inline-flex";
+
+        if(projectName === 'Employer Summary') {
+            document.getElementById('currentProjectTitle').innerText = "EMPLOYER SUMMARY REPORT";
+        } else if(projectName === 'All Projects') {
+            document.getElementById('currentProjectTitle').innerText = "ALL PROJECTS - DASHBOARD";
+        } else if(projectName === 'Shortage Summary') {
+            document.getElementById('currentProjectTitle').innerText = "SHORTAGE SUMMARY REPORT (ALL)";
+        } else if(projectName === 'All IRs') {
+            document.getElementById('currentProjectTitle').innerText = "ALL IR UPDATE - SECTION";
+        } else if(projectName.startsWith('Shortage:')) {
+            let pName = projectName.replace('Shortage: ', '');
+            document.getElementById('currentProjectTitle').innerText = pName + " - SHORTAGE REPORT";
+        } else if(projectName.startsWith('IR:')) {
+            let pName = projectName.replace('IR: ', '');
+            document.getElementById('currentProjectTitle').innerText = pName + " - IR RECORDS";
+        } else {
+            document.getElementById('currentProjectTitle').innerText = projectName + " - DASHBOARD";
+        }
+        
+        document.querySelectorAll('.project-list li').forEach(li => {
+            li.classList.remove('active');
+            let onclickAttr = li.getAttribute('onclick') || "";
+            if(onclickAttr.includes(`'${projectName}'`)) li.classList.add('active');
+        });
+
+        if(projectName === "All IRs" || projectName.startsWith("IR:")) {
+            if(projectName === "All IRs" && currentUserRole === 'admin') {
+                irFormSection.style.display = "block"; 
+            }
+            displayIRData();
+        } 
+        else if(projectName === "Employer Summary" || projectName.startsWith("Shortage") || projectName === "Shortage Summary") {
+            standardFilterContainer.style.display = "none";
+            summaryControlsSection.style.display = "block";
+            filterSectionTitle.innerText = projectName === "Employer Summary" ? "Filter Employer Summary Report" : "Filter Shortage Summary Report";
+            triggerSummaryGeneration();
+        } 
+        else {
+            if(projectName !== "All Projects" && currentUserRole === 'admin') {
+                formSection.style.display = "block";
+                formProjectTitle.innerText = projectName;
+            }
+            displayData();
+        }
+    }
+
+    window.triggerSummaryGeneration = function() {
+        if(currentProject === "Employer Summary") {
+            generateSummaryReport();
+        } else if(currentProject.startsWith("Shortage") || currentProject === "Shortage Summary") {
+            generateShortageReport();
+        }
+    }
+
+    window.filterByMonth = function() {
+        selectedMonthFilter = monthFilterDropdown.value;
+        if(currentProject === "All IRs" || currentProject.startsWith("IR:")) displayIRData();
+        else displayData();
+    }
+
+    onValue(ref(db, 'records'), (snapshot) => {
+        const data = snapshot.val();
+        databaseItems = [];
+        if (data) {
+            Object.keys(data).forEach(key => {
+                databaseItems.push({ id: key, ...data[key] });
+            });
+        }
+        if(!(currentProject === "All IRs" || currentProject.startsWith("IR:"))) {
+            if(currentProject === "Employer Summary" || currentProject.startsWith("Shortage") || currentProject === "Shortage Summary") triggerSummaryGeneration();
+            else displayData();
+        }
+    });
+
+    onValue(ref(db, 'ir_records'), (snapshot) => {
+        const data = snapshot.val();
+        irDatabaseItems = [];
+        if (data) {
+            Object.keys(data).forEach(key => {
+                irDatabaseItems.push({ id: key, ...data[key] });
+            });
+        }
+        if(currentProject === "All IRs" || currentProject.startsWith("IR:")) {
+            displayIRData();
+        }
+    });
+
+    function displayData() {
+        tableHeader.innerHTML = `<tr>
+            <th>NO</th><th>MONTH</th><th>PROJECT</th><th>NAME</th><th>EMP NO</th><th>BONUS COUNT</th><th>SHORT AMOUNT</th><th>ACHIEVED AMOUNT</th>
+            ${currentUserRole === 'admin' ? '<th>ACTION</th>' : ''}
+        </tr>`;
+        
+        tableBody.innerHTML = "";
+        let filteredData = databaseItems;
+        if(currentProject !== "All Projects") {
+            filteredData = databaseItems.filter(item => item.project === currentProject);
+        }
+        if(selectedMonthFilter !== "All Months") {
+            filteredData = filteredData.filter(item => item.month === selectedMonthFilter);
+        }
+
+        filteredData.forEach((emp, index) => {
+            let deleteCell = currentUserRole === 'admin' ? `<td><button class="delete-btn" data-id="${emp.id}" data-type="records">Delete</button></td>` : '';
+            let displayMonth = emp.month || "May"; 
+            let shortVal = parseFloat(emp.shortAmount) || 0;
+            let achVal = emp.achievedAmount !== undefined && emp.achievedAmount !== "" ? emp.achievedAmount + '$' : '-';
+            let projName = emp.project ? emp.project.toUpperCase() : "";
+            let badgeClass = "badge";
+
+            if ((projName === "W PROJECT" || projName === "ATAS") && shortVal >= 600) badgeClass = "badge strike-red";
+            else if ((projName === "KK8 - W" || projName === "KK8 - D") && shortVal >= 400) badgeClass = "badge strike-red";
+            
+            let row = `<tr>
+                <td>${index + 1}</td>
+                <td><span class="month-badge">${displayMonth}</span></td>
+                <td style="font-weight:bold; color:#1f497d;">${emp.project}</td>
+                <td>${emp.name || '-'}</td>
+                <td>${emp.empNo || '-'}</td>
+                <td>${emp.bonusCount !== undefined && emp.bonusCount !== "" ? Number(emp.bonusCount).toLocaleString() : '-'}</td>
+                <td>${shortVal == 0 ? '-' : 'MYR ' + shortVal.toFixed(2)}</td>
+                <td><span class="${badgeClass}">${achVal}</span></td>
+                ${deleteCell}
+            </tr>`;
+            tableBody.innerHTML += row;
+        });
+        attachDeleteEvents();
+    }
+
+    function displayIRData() {
+        tableHeader.innerHTML = `<tr>
+            <th>NO</th><th>MONTH</th><th>PROJECT</th><th>EMPLOYEE NAME</th><th>EMP NO</th><th>IR ISSUE / REASON</th><th>AMOUNT</th><th>STATUS</th>
+            ${currentUserRole === 'admin' ? '<th>ACTION</th>' : ''}
+        </tr>`;
+        
+        tableBody.innerHTML = "";
+        let filteredIR = irDatabaseItems;
+
+        if(currentProject.startsWith("IR: ")) {
+            let targetProj = currentProject.replace("IR: ", "");
+            filteredIR = irDatabaseItems.filter(item => item.project === targetProj);
+        }
+
+        if(selectedMonthFilter !== "All Months") {
+            filteredIR = filteredIR.filter(item => item.month === selectedMonthFilter);
+        }
+
+        filteredIR.forEach((ir, index) => {
+            let deleteCell = currentUserRole === 'admin' ? `<td><button class="delete-btn" data-id="${ir.id}" data-type="ir_records" style="background-color: #e74c3c; border:none; color:white; padding:5px 10px; border-radius:5px; cursor:pointer;">Delete</button></td>` : '';
+            let statusColor = ir.status && ir.status.toLowerCase() === 'resolved' ? '#2ecc71' : '#e67e22';
+            let amtVal = parseFloat(ir.amount) ? 'MYR ' + parseFloat(ir.amount).toFixed(2) : '-';
+
+            let row = `<tr>
+                <td>${index + 1}</td>
+                <td><span class="month-badge" style="background-color:#e0f2fe; color:#0369a1;">${ir.month || 'May'}</span></td>
+                <td style="font-weight:bold; color:#1abc9c;">${ir.project || '-'}</td>
+                <td>${ir.name || '-'}</td>
+                <td>${ir.empNo || '-'}</td>
+                <td style="color:#2c3e50; font-weight:500;">${ir.issue || '-'}</td>
+                <td style="color:#2980b9; font-weight:600;">${amtVal}</td>
+                <td><span class="badge" style="background-color: ${statusColor}; color: white; border-radius: 5px; padding: 3px 8px;">${ir.status || 'Pending'}</span></td>
+                ${deleteCell}
+            </tr>`;
+            tableBody.innerHTML += row;
+        });
+
+        if(filteredIR.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#94a3b8; padding:30px;">No IR records found for this section.</td></tr>`;
+        }
+        attachDeleteEvents();
+    }
+
+    window.generateSummaryReport = function() {
+        const startM = document.getElementById('startMonth').value;
+        const endM = document.getElementById('endMonth').value;
+        const searchQ = document.getElementById('searchQuery').value.toLowerCase().trim();
+        const startIndex = monthOrder.indexOf(startM);
+        const endIndex = monthOrder.indexOf(endM);
+
+        tableHeader.innerHTML = `<tr>
+            <th>NO</th><th>MONTH</th><th>PROJECT</th><th>EMP NO</th><th>EMPLOYEE NAME</th><th>BONUS COUNT</th><th>SHORT AMOUNT</th><th>ACHIEVED AMOUNT</th>
+        </tr>`;
+        tableBody.innerHTML = "";
+
+        let filtered = databaseItems.filter(item => {
+            let m = item.month || "May";
+            let mIndex = monthOrder.indexOf(m);
+            let inMonthRange = startIndex <= endIndex ? (mIndex >= startIndex && mIndex <= endIndex) : (mIndex >= startIndex || mIndex <= endIndex);
+            let matchesSearch = searchQ === "" || (item.name || "").toLowerCase().includes(searchQ) || (item.empNo || "").toString().includes(searchQ);
+            return inMonthRange && matchesSearch;
+        });
+
+        let grandBonus = 0, grandShort = 0, grandAchieved = 0;
+
+        filtered.forEach((item, index) => {
+            let bCount = parseFloat(item.bonusCount) || 0;
+            let sAmount = parseFloat(item.shortAmount) || 0;
+            let aAmount = parseFloat(item.achievedAmount) || 0;
+            grandBonus += bCount; grandShort += sAmount;
+
+            let projName = item.project ? item.project.toUpperCase() : "";
+            let badgeClass = "badge", isStriked = false;
+
+            if (((projName === "W PROJECT" || projName === "ATAS") && sAmount >= 600) || ((projName === "KK8 - W" || projName === "KK8 - D") && sAmount >= 400)) {
+                badgeClass = "badge strike-red"; isStriked = true;
+            }
+            if (!isStriked && item.achievedAmount !== undefined && item.achievedAmount !== "") grandAchieved += aAmount;
+
+            tableBody.innerHTML += `<tr>
+                <td>${index + 1}</td>
+                <td><span class="month-badge">${item.month || 'May'}</span></td>
+                <td style="font-weight:bold; color:#1f497d;">${item.project || '-'}</td>
+                <td>${item.empNo || '-'}</td>
+                <td>${item.name || '-'}</td>
+                <td>${bCount.toLocaleString()}</td>
+                <td>${sAmount == 0 ? '-' : 'MYR ' + sAmount.toFixed(2)}</td>
+                <td><span class="${badgeClass}">${item.achievedAmount !== undefined && item.achievedAmount !== "" ? aAmount + '$' : '-'}</span></td>
+            </tr>`;
+        });
+
+        if(filtered.length > 0) {
+            tableBody.innerHTML += `<tr class="total-row">
+                <td colspan="5" style="text-align: right;">GRAND TOTAL:</td>
+                <td>${grandBonus.toLocaleString()}</td>
+                <td>${grandShort == 0 ? '-' : 'MYR ' + grandShort.toFixed(2)}</td>
+                <td><span class="badge" style="background-color:#1f497d; color:white;">${grandAchieved.toLocaleString()}$</span></td>
+            </tr>`;
+        }
+    }
+
+    window.generateShortageReport = function() {
+        const startM = document.getElementById('startMonth').value;
+        const endM = document.getElementById('endMonth').value;
+        const searchQ = document.getElementById('searchQuery').value.toLowerCase().trim();
+        const startIndex = monthOrder.indexOf(startM);
+        const endIndex = monthOrder.indexOf(endM);
+
+        tableHeader.innerHTML = `<tr><th>NO</th><th>MONTH</th><th>PROJECT</th><th>NAME</th><th>EMP NO</th><th>SHORT AMOUNT</th></tr>`;
+        tableBody.innerHTML = "";
+
+        let filtered = databaseItems.filter(item => {
+            let sAmount = parseFloat(item.shortAmount) || 0;
+            if(sAmount <= 0) return false;
+            if(currentProject.startsWith("Shortage: ") && item.project !== currentProject.replace("Shortage: ", "")) return false;
+            let mIndex = monthOrder.indexOf(item.month || "May");
+            let inMonthRange = startIndex <= endIndex ? (mIndex >= startIndex && mIndex <= endIndex) : (mIndex >= startIndex || mIndex <= endIndex);
+            return inMonthRange && (searchQ === "" || (item.name || "").toLowerCase().includes(searchQ) || (item.empNo || "").toString().includes(searchQ));
+        });
+
+        let grandShort = 0;
+        filtered.forEach((item, index) => {
+            let sAmount = parseFloat(item.shortAmount) || 0; grandShort += sAmount;
+            tableBody.innerHTML += `<tr>
+                <td>${index + 1}</td>
+                <td><span class="month-badge">${item.month || 'May'}</span></td>
+                <td style="font-weight:bold; color:#1f497d;">${item.project || '-'}</td>
+                <td>${item.name || '-'}</td>
+                <td>${item.empNo || '-'}</td>
+                <td style="color: #e74c3c; font-weight: 600;">MYR ${sAmount.toFixed(2)}</td>
+            </tr>`;
+        });
+
+        if(filtered.length > 0) {
+            tableBody.innerHTML += `<tr class="total-row"><td colspan="5" style="text-align: right;">TOTAL SHORTAGE:</td><td style="color: #e74c3c;">MYR ${grandShort.toFixed(2)}</td></tr>`;
+        }
+    }
+
+    function attachDeleteEvents() {
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.replaceWith(btn.cloneNode(true)); 
+        });
+
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                const type = this.getAttribute('data-type'); 
+                if(confirm(`Are you sure you want to delete this record from cloud ${type === 'ir_records' ? 'IR list' : 'list'}?`)) {
+                    remove(ref(db, `${type}/${id}`));
+                }
+            });
+        });
+    }
+
+    document.getElementById('dataForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (currentUserRole !== 'admin') return;
+        const newRecordRef = push(ref(db, 'records'));
+        set(newRecordRef, {
+            month: document.getElementById('dataMonth').value || "May",
+            project: currentProject,
+            name: document.getElementById('empName').value || "",
+            empNo: document.getElementById('empNo').value || "",
+            bonusCount: document.getElementById('bonusCount').value || "",
+            shortAmount: document.getElementById('shortAmount').value || "",
+            achievedAmount: document.getElementById('achievedAmount').value || ""
+        });
+        const prevMonth = document.getElementById('dataMonth').value;
+        document.getElementById('dataForm').reset();
+        document.getElementById('dataMonth').value = prevMonth;
+    });
+
+    // 🚀 Aluth Vertical Form Submit Listener ekasaha Amount data object ekath cloud ekata yawana widiha
+    document.getElementById('irDataForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (currentUserRole !== 'admin') return;
+        
+        const irRef = push(ref(db, 'ir_records'));
+        set(irRef, {
+            month: document.getElementById('irMonth').value || "May",
+            project: document.getElementById('irProjectSelect').value, 
+            name: document.getElementById('irEmpName').value || "",
+            empNo: document.getElementById('irEmpNo').value || "",
+            issue: document.getElementById('irIssue').value || "",
+            amount: document.getElementById('irAmount').value || "",
+            status: document.getElementById('irStatus').value || "Pending"
+        });
+
+        const prevIRMonth = document.getElementById('irMonth').value;
+        document.getElementById('irDataForm').reset();
+        document.getElementById('irMonth').value = prevIRMonth;
+        alert("IR Record submitted successfully in Vertical Format!");
+    });
+
+    checkAuth();
+</script>
+</body>
+</html>
